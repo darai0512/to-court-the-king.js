@@ -1,40 +1,41 @@
-import {Timing, INITIAL_DICE_NUM, Step} from './const'
-import {Card} from './card'
+import {Timing, INITIAL_DICE_NUM} from './const'
+import cards, {Card, Selected} from './card'
+
+interface PlayerCard {
+  card: Card
+  available: boolean
+}
 
 export default class Player {
-  cards: Card[]
-  cardCandidates: Card[]
+  cards: PlayerCard[]
   name: string
   diceNum: number
   activeDices: number[]
   fixedDices: number[]
+  hasQueen: boolean
 
   constructor(name: string) {
     this.cards = []
     this.name = name
-    this.diceNum = 0
+    this.diceNum = INITIAL_DICE_NUM
     this.fixedDices = []
     this.activeDices = []
-    this.cardCandidates = []
+    this.hasQueen = false
   }
 
   _rollDice() {
     return Math.floor(Math.random() * 6) + 1
   }
 
-  roll(initialRoll: boolean) {
-    if (initialRoll) {
-      this.diceNum += INITIAL_DICE_NUM
-      this.fixedDices = []
-    }
+  roll() {
     this.activeDices = Array.from({ length: this.diceNum }, this._rollDice)
   }
 
-  useAbility(params: {cardIdx: number, diceIdxes?: number[], changes?: number[]}) {
-    const card = this.cardCandidates[params.cardIdx]
-    if (card.ability.timing !== Timing.ability) return
-    card.ability.on(this, params)
-    this.cardCandidates.splice(params.cardIdx, 1)
+  useAbility({cardIdx, selected}: {cardIdx: number, selected?: Selected}) {
+    const v = this.cards[cardIdx]
+    if (!v.available) throw '使用不可のカード'
+    v.card.ability.on(this, selected)
+    v.available = false
   }
 
   fix(diceIdxes: number[]): void {
@@ -46,14 +47,16 @@ export default class Player {
 
   choose(card: Card) {
     if (!card) throw '最低1枚のcard選択が必要'
-    this.cards.push(card)
-    for (const card of this.cards) {
-      if (card.ability.timing === Timing.immediate) card.ability.on(this, {})
-    }
-    this.cardCandidates = this.cards.filter(card => card.ability.timing === Timing.ability)
-  }
+    this.cards.push({card, available: card.ability.timing === Timing.ability})
 
-  hasQueen() {
-    return this.cards.some(card => card.name.en === 'King')
+    if (card === cards.King) this.hasQueen = true
+    this.diceNum = INITIAL_DICE_NUM
+    for (const v of this.cards) {
+      if (v.card.ability.timing === Timing.immediate) v.card.ability.on(this)
+      else v.available = true
+    }
+    const dices = [...this.fixedDices]
+    this.fixedDices = []
+    return dices
   }
 }

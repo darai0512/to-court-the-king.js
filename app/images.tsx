@@ -2,26 +2,30 @@
 'use client'
 
 import Image from "next/image"
-import {useState} from "react";
-import {Step} from '~/src/const'
-import { RadioGroup } from '@headlessui/react'
+import {ReactDOM, useState} from "react";
+import { RadioGroup, Switch } from '@headlessui/react'
+import Modal from "./modal"
+import {FieldData} from "~/src/field";
+import cards from "~/src/card";
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ')
 }
 
-export function Card({card, count}) {
+const dicesClass = "mt-3 mb-3 grid grid-cols-4 gap-x-4"
+
+export function Card({card, count}: {card: any, count?: number}) {
   let onField
   if (count) {
     onField = (
       <span>
-        <br/>条件: {card.cost.desc.ja}<br/>残り: {count}枚
+        <br/>条件: {card.cost.description.ja}<br/>残り: {count}枚
       </span>
     )
   }
   return (
     <div key={`card-${card.name.en}`} className="group relative">
-      <div className="aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-md bg-gray-200 lg:aspect-none group-hover:opacity-75 lg:h-80">
+      <div className="w-full overflow-hidden rounded-md bg-gray-200 lg:aspect-none group-hover:opacity-75 lg:h-80">
         <Image
           src={`/cards/${card.image}`}
           alt={`cards-${card.name.ja}`}
@@ -36,7 +40,7 @@ export function Card({card, count}) {
           <h3 className="text-sm text-gray-700">
             <span aria-hidden="true" className="absolute inset-0" />
             名称: {card.name.ja}<br/>
-            能力: {card.ability.desc.ja}
+            能力: {card.ability.description.ja}
             {onField}
           </h3>
         </div>
@@ -44,128 +48,202 @@ export function Card({card, count}) {
     </div>
   )
 }
-export function Dice({dice, index, onClick, selected}) {
+function Dice({dice, index, onClick, selected, children}: {dice: number, index: number, onClick: (i: number) => void, selected: boolean, children?: ReactDOM}) {
   return (
     <div className="group relative" key={`${index}-dice-${dice}`}>
-      <div className="aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-md bg-gray-200 lg:aspect-none group-hover:opacity-75">
+      <div className="w-full overflow-hidden rounded-md bg-gray-200 lg:aspect-none group-hover:opacity-75">
         <Image
           src={`/dices/${dice}.png`}
           alt={dice}
           className={`${selected ? 'border-4 border-indigo-500/75 ' : ''}h-full w-full object-cover object-center lg:h-full lg:w-full`}
-          onClick={onClick ? (e) => onClick(index) : null}
+          onClick={(e) => onClick(index)}
           width={40}
           height={40}
           priority
         />
       </div>
+      {children}
     </div>
   )
-}
-
-export function activeDiceElms(activeDices: number[], onClick = null, fixes: boolean[] = []) {
-  const images = []
-  for (const [index, dice] of activeDices.entries()) {
-    images.push(Dice({dice, index, onClick, selected: fixes[index]}))
-  }
-  return images
-}
-
-export function Fix({field, params}) {
-  const [fixes, setFixes] = useState(
-    field.activePlayer.activeDices.map(_ => false)
-  )
-  const onClick = (index) => {
-     const updatedFixes = fixes.map((v, i) =>
-      index === i ? !v : v
-    );
-    setFixes(updatedFixes)
-    const diceIdxes: number[] = []
-    for (const [i, v] of updatedFixes.entries()) {
-      if (v) diceIdxes.push(i)
-    }
-    params.diceIdxes = diceIdxes
-  }
-  return activeDiceElms(field.activePlayer.activeDices, onClick, fixes)
 }
 
 export function Ability({field, params}) {
-  const [selectedCard, setSelectedCard] = useState(-1)
-  const [selectedDice, setSelectedDice] = useState(-1)
-  const [change, setChange] = useState(0)
-  const onClick = (cardIdx) => {
-    setSelectedCard(cardIdx)
-    const card = field.activePlayer.cardCandidates[cardIdx]
-    const {dice, changes, valid} = card.ability.select
-    // dice/change選択
-    params.cardIdx = cardIdx
+  const [cardIdx, setCardIdx] = useState(-1)
+  const [selected, setSelected] = useState({})
+  const [modal, setModal] = useState({open: false, index: -1})
+  const onClose = () => setModal({open: false, index: modal.index})
+  const diceClick = (index) => {
+    if (cardIdx === -1) return
+    const {card} = field.activePlayer.cards[cardIdx]
+    if (typeof card.ability.select === 'undefined') return
+
+    const newDice = selected[index]
+    if (newDice) delete selected[index]
+    else if (Object.keys(selected).length === card.ability.select.dice) return
+    else {
+      selected[index] = 1
+      if (card.ability.select.new) setModal({open: true, index})
+    }
+    setSelected({...selected})
+    params.selected = selected
+  }
+  const changeCard = (_cardIdx, checked) => {
+    if (checked) {
+      setCardIdx(_cardIdx)
+      params.cardIdx = _cardIdx
+      const {card} = field.activePlayer.cards[_cardIdx]
+      if (typeof card.ability.select !== 'undefined' &&
+        card.ability.select.dice === 0 &&
+        card.ability.select.new) {
+        setModal({open: true, index: 0})
+      }
+    } else {
+      if (cardIdx === _cardIdx) {
+        setCardIdx(-1)
+        delete params.cardIdx
+      }
+    }
+    delete params.selected
+  }
+  const onDiceChange = (e) => {
+    selected[modal.index] = Number(e.target.value)
+    setSelected({...selected})
+    params.selected = selected
+  }
+
+  const dices = []
+  for (const [i, dice] of field.activePlayer.activeDices.entries()) {
+    const _selected = Object.keys(selected).map(v=>Number(v)).includes(i)
+    dices.push(
+      <Dice key={`dice-${i}`} dice={dice} index={i} onClick={diceClick} selected={_selected}>
+        {selected[i] ? selected[i] : null}
+      </Dice>
+    )
   }
   return (
-    <div>
-    <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4 xl:gap-x-8">
-      {activeDiceElms(field.activePlayer.activeDices)}
-    </div>
-    <RadioGroup value={selectedCard} onChange={onClick} className="mt-4">
-      <RadioGroup.Label className="sr-only">Choose a card</RadioGroup.Label>
-      <div className="grid grid-cols-4 gap-4">
-        {field.activePlayer.cardCandidates.map((card, index) => (
-          <RadioGroup.Option
-            key={`card-${card.name.en}`}
-            value={index}
-            className={({ active }) =>
-              classNames(
-                'cursor-pointer bg-white text-gray-900 shadow-sm',
-                active ? 'ring-2 ring-indigo-500/75' : '',
-                'group relative flex item-center justify-center rounded-md border py-3 px-4 hover:bg-gray-50 focus:outline-none sm:flex-1'
-              )
-            }
-          >
-            {({ active, checked}) => (
-              <>
-                <RadioGroup.Label as={Card} card={card} step={field.step}></RadioGroup.Label>
-                  <span
-                    className={classNames(
-                      active ? 'border' : 'border-2',
-                      checked ? 'border-indigo-500' : 'border-transparent',
-                      'pointer-events-none absolute -inset-px rounded-md'
-                    )}
-                    aria-hidden="true"
-                  />
-              </>
-            )}
-          </RadioGroup.Option>
-        ))}
+    <>
+      <div className={dicesClass}>
+        {dices}
       </div>
-    </RadioGroup>
+      <Modal isOpen={modal.open} onClose={onClose}>
+        <div className="mt-2">
+          <label className="block text-sm font-medium leading-6 text-gray-900">
+            Change dice {field.activePlayer.activeDices[modal.index]} into&nbsp;
+            <input
+              type="number"
+              min={1}
+              max={6}
+              value={selected[modal.index] || 1}
+              onChange={onDiceChange}
+              className="rounded-md border-0 py-1.5 pl-7 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+            />
+          </label>
+        </div>
+        <div className="flex mt-4 justify-center">
+          <button
+            type="button"
+            className="inline-flex justify-center rounded-md border border-transparent bg-blue-100 px-4 py-2 text-sm font-medium text-blue-900 hover:bg-blue-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            onClick={onClose}
+          >
+            done
+          </button>
+        </div>
+      </Modal>
+      <Switch.Group>
+        <div className="grid grid-cols-4 gap-4">
+          {field.activePlayer.cards.map(({card, available}, index) => available ? (
+            <Switch
+              key={`card-${index}`}
+              checked={cardIdx === index}
+              onChange={(checked) => changeCard(index, checked)}
+              className={({ checked }) =>
+                classNames(
+                  'bg-white',
+                  'cursor-pointer',
+                  checked ? 'ring-2 ring-indigo-500/75' : '',
+                  'group relative item-center justify-center rounded-md border py-3 px-4 hover:bg-gray-50 focus:outline-none'
+                )
+              }
+            >
+              <Switch.Label as={Card} card={card}></Switch.Label>
+            </Switch>
+          ) : (
+            <div
+              key={`card-${index}`}
+              className="bg-white cursor-not-allowed group relative item-center justify-center rounded-md border py-3 px-4 hover:bg-gray-50 focus:outline-none"
+            >
+              <Switch.Label as={Card} card={card}></Switch.Label>
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute -inset-px rounded-md border-2 border-gray-200"
+              >
+                <svg
+                  className="absolute inset-0 h-full w-full stroke-2 text-gray-200"
+                  viewBox="0 0 100 100"
+                  preserveAspectRatio="none"
+                  stroke="currentColor"
+                >
+                  <line x1={0} y1={100} x2={100} y2={0} vectorEffect="non-scaling-stroke" />
+                </svg>
+              </span>
+            </div>
+          ))}
+        </div>
+      </Switch.Group>
+    </>
+  )
+}
+
+export function Fix({field, params}: {field: FieldData, params: Object}) {
+  const [diceIdxes, setDiceIdxes] = useState([])
+  const onClick = (index) => {
+    let _diceIdxes
+    if (diceIdxes.includes(index)) _diceIdxes = diceIdxes.filter((v) => v !== index)
+    else _diceIdxes = diceIdxes.concat(index)
+    setDiceIdxes(_diceIdxes)
+    params.diceIdxes = _diceIdxes
+  }
+
+  const dices = []
+  for (const [i, dice] of field.activePlayer.activeDices.entries()) {
+    dices.push(
+      <Dice key={`dice-${i}`} dice={dice} index={i} onClick={onClick} selected={diceIdxes.includes(i)} />
+    )
+  }
+  return (
+    <div className={dicesClass}>
+      {dices}
     </div>
   )
 }
 
 export function Choice({field, params, isAvailable}) {
-  const [selectedCard, setSelectedCard] = useState(-1)
-  const onClick = (cardIdx) => {
-    setSelectedCard(cardIdx)
-    params.cardIdx = cardIdx
+  const [cardIdx, setCardIdx] = useState(-1)
+  const onChange = (_cardIdx) => {
+    setCardIdx(_cardIdx)
+    params.cardIdx = _cardIdx
   }
   return (
-    <RadioGroup value={selectedCard} onChange={onClick} className="mt-4">
+    <RadioGroup value={cardIdx} onChange={onChange} className="mt-4">
       <RadioGroup.Label className="sr-only">Choose a card</RadioGroup.Label>
       <div className="grid grid-cols-4 gap-4">
-        {field.cards.map((card, index) => (
+        {Object.values(cards).map((card, index) => (
           <RadioGroup.Option
             key={`card-${card.name.en}`}
             value={index}
             disabled={!isAvailable(card, field)}
             className={({ active }) =>
               classNames(
-                card.count > 0 ? 'cursor-pointer bg-white text-gray-900 shadow-sm' : 'cursor-not-allowed bg-gray-50 text-gray-200',
+                'bg-white',
+                isAvailable(card, field) ? 'cursor-pointer' : 'cursor-not-allowed',
                 active ? 'ring-2 ring-indigo-500/75' : '',
-                'group relative flex item-center justify-center rounded-md border py-3 px-4 hover:bg-gray-50 focus:outline-none sm:flex-1'
+                'group relative item-center justify-center rounded-md border py-3 px-4 hover:bg-gray-50 focus:outline-none'
               )
             }
           >
             {({ active, checked, disabled }) => (
               <>
-                <RadioGroup.Label as={Card} card={card} step={field.step} count={field.remainingCards[card.name.en]}></RadioGroup.Label>
+                <RadioGroup.Label as={Card} card={card} count={field.remainingCards[card.name.en]}></RadioGroup.Label>
                 {!disabled ? (
                   <span
                     className={classNames(

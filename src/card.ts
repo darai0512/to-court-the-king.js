@@ -1,44 +1,31 @@
 import Player from './player'
-import { Timing, i11n } from './const'
+import { Timing, i11n  } from './const'
 
 
-interface Selected {
-  diceIdxes?: number[]
-  changes?: number[]
-}
-interface CheckedSelected {
-  diceIdxes: number[]
-  changes: number[]
-}
-type AssertSelected = (player:Player, selected?: Selected) => asserts selected is CheckedSelected
+export type Selected = Record<string, number> // diceIdx: newDiceValue
+type AssertSelected = (player:Player, selected: unknown) => asserts selected is Selected
 
 export interface Card {
   name: i11n,
   image: string,
   level: number,
   cost: {
-    desc: i11n,
-    valid: (player: Player) => boolean,
+    description: i11n,
+    valid: (player: Player, dryRun?: boolean) => boolean,
   },
   ability: {
-    desc: i11n,
+    description: i11n,
     timing: typeof Timing[keyof typeof Timing],
-    select: {
-      dice?: number,
-      change?: number[],
-      valid: AssertSelected,
+    select?: { // このプロパティがない場合は即時発動
+      dice: number, // 選択するダイス数の最大値
+      new: boolean, // 新たなダイスの値を指定するか否か
+      valid: AssertSelected, // 選択内容の妥当性確認(throwで違反内容を伝える)
     },
-    on: (player: Player, selected?: Selected) => void,
+    on: ((player: Player, selected?: Selected) => void),
   },
 }
 
-const noSelect: AssertSelected = (player, selected) => {}
-
-const checkDices = (player: Player): void => {
-  for (const dice of player.activeDices) {
-    if (dice < 1 || dice > 6) throw 'invalid select'
-  }
-}
+const diceRange = [1, 2, 3, 4, 5, 6]
 
 const sameDicePair = (fixedDices: number[], expected: number): boolean => {
   const counts: Record<number, boolean> = {}
@@ -63,8 +50,16 @@ const sameDiceCount = (fixedDices: number[], expected: number): boolean => {
   return false
 }
 
-const oneTo6 = [1, 2, 3, 4, 5, 6]
-const changeDiceRange = [...Array(11)].map((_, i) => i - 6) // [-5,-4,-3,-2,-1,0,1,2,3,4,5]
+type IsSelected = (selected: unknown, diceNum: number, length?: number) => asserts selected is Selected
+const isSelected: IsSelected = (selected: unknown, diceNum: number, length: number = -1) => {
+  if (typeof selected !== 'object' || selected === null) throw 'invalid select'
+  const selectedKeys = Object.keys(selected)
+  if (length > -1 && selectedKeys.length !== length) throw 'invalid select'
+  for (const idx of Object.keys(selected)) {
+    const v = (selected as Selected)[idx]
+    if (Number(idx) < 0 || Number(idx) >= diceNum || !diceRange.includes(v)) throw 'invalid select'
+  }
+}
 
 const Queen: Card = {
   name: {
@@ -74,32 +69,27 @@ const Queen: Card = {
   image: 'Queen.png',
   level: 5,
   cost: {
-    desc: {
+    description: {
       en: '',
       ja: '国王を獲得している',
     },
-    valid: (player) => player.cards.some(card => card.name.en === 'King'),
+    valid: (_, __) => true,
   },
   ability: {
-    desc: {
+    description: {
       en: '',
       ja: '任意の出目のダイスを1個追加',
     },
     timing: Timing.ability,
     select: {
-      change: oneTo6,
-      valid: (player, selected) => {
-        const {change} = Queen.ability.select
-        if (!selected || !Array.isArray(selected.changes) ||
-          selected.changes.length !== 1 ||
-          !change!.includes(selected.changes[0])
-        ) throw 'invalid select'
-      }
+      dice: 0,
+      new: true,
+      valid: (player, selected) => isSelected(selected, 1, 1),
     },
     on: (player, selected): void => {
-      const valid: AssertSelected = Queen.ability.select.valid
+      const valid: AssertSelected = Queen.ability.select!.valid
       valid(player, selected)
-      player.activeDices.push(selected.changes[0])
+      player.activeDices.push(Object.values(selected)[0])
     },
   },
 }
@@ -113,29 +103,27 @@ const cards: Record<string, Card> = {
     image: 'Fool.png',
     level: 0,
     cost: {
-      desc: {
+      description: {
         en: 'Free',
         ja: '出目合計0以上',
       },
-      valid: (player: Player): boolean => true,
+      valid: (player: Player, _): boolean => true,
     },
     ability: {
-      desc: {
+      description: {
         en: '',
         ja: 'ダイス1個を振り直す',
       },
       timing: Timing.ability,
       select: {
         dice: 1,
-        valid: (player, selected) => {
-          if (!selected || !Array.isArray(selected.diceIdxes) ||
-            selected.diceIdxes.length !== cards.Fool.ability.select.dice) throw 'invalid diceIdxes'
-        },
+        new: false,
+        valid: (player, selected) => isSelected(selected, player.activeDices.length, cards.Fool.ability.select!.dice),
       },
       on: (player, selected) => {
-        const valid: AssertSelected = cards.Fool.ability.select.valid
+        const valid: AssertSelected = cards.Fool.ability.select!.valid
         valid(player, selected)
-        player.activeDices[selected.diceIdxes[0]] = player._rollDice()
+        player.activeDices[Number(Object.keys(selected)[0])] = player._rollDice()
       },
     },
   },
@@ -147,22 +135,24 @@ const cards: Record<string, Card> = {
     image: 'Charlatan.png',
     level: 0,
     cost: {
-      desc: {
+      description: {
         en: '',
         ja: '道化師を所持(何枚でも所持可能)',
       },
-      valid: (player) => (player.cards as Card[]).includes(cards.Fool),
+      valid: (player, dryRun = true) => {
+        const i = player.cards.findIndex(v => v.card === cards.Fool)
+        if (i === -1) return false
+        if (!dryRun) player.cards.splice(i, 1)
+        return true
+      },
     },
     ability: {
-      desc: {
+      description: {
         en: '',
         ja: '手番開始時にダイス1個追加',
       },
       timing: Timing.immediate,
-      select: {
-        valid: noSelect,
-      },
-      on: (player, _) => {
+      on: (player: Player) => {
         player.diceNum += 1
       },
     },
@@ -175,22 +165,19 @@ const cards: Record<string, Card> = {
     image: 'Farmer.png',
     level: 1,
     cost: {
-      desc: {
+      description: {
         en: '',
         ja: '同じ出目2つ :x: = :x:',
       },
-      valid: (player) => sameDiceCount(player.fixedDices, 2),
+      valid: (player, _) => sameDiceCount(player.fixedDices, 2),
     },
     ability: {
-      desc: {
+      description: {
         en: '',
         ja: '手番開始時にダイス1個追加',
       },
       timing: Timing.immediate,
-      select: {
-        valid: noSelect,
-      },
-      on: (player, _) => {
+      on: (player: Player) => {
         player.diceNum += 1
       },
     },
@@ -203,37 +190,34 @@ const cards: Record<string, Card> = {
     image: 'Philosopher.png',
     level: 1,
     cost: {
-      desc: {
+      description: {
         en: '',
         ja: '出目全てが偶数 ALL :2: / :4: / :6:',
       },
-      valid: (player) => player.fixedDices.every(v => v % 2 === 0),
+      valid: (player, _) => player.fixedDices.every(v => v % 2 === 0),
     },
     ability: {
-      desc: {
+      description: {
         en: '',
         ja: 'ダイス1個の出目を-Xし、他のダイス1個に+Xする',
       },
       timing: Timing.ability,
       select: {
         dice: 2,
-        change: changeDiceRange,
+        new: true,
         valid: (player, selected) => {
-          const {dice} = cards.Philosopher.ability.select
-          if (!selected || !Array.isArray(selected.changes) ||
-            !Array.isArray(selected.diceIdxes) ||
-            selected.changes.length !== dice ||
-            selected.diceIdxes.length !== dice ||
-            selected.changes.reduce((v, p) => v + p, 0) !== 0
-          ) throw 'invalid select'
+          isSelected(selected, player.activeDices.length, cards.Philosopher.ability.select!.dice)
+          let sum = 0
+          for (const idx of Object.keys(selected)) {
+            sum += selected[idx] - player.activeDices[Number(idx)]
+          }
+          if (sum !== 0) throw 'invalid select'
         },
       },
       on: (player, selected): void => {
-        const valid: AssertSelected = cards.Philosopher.ability.select.valid
+        const valid: AssertSelected = cards.Philosopher.ability.select!.valid
         valid(player, selected)
-        player.activeDices[selected.diceIdxes[0]] += selected.changes[0]
-        player.activeDices[selected.diceIdxes[1]] += selected.changes[1]
-        checkDices(player)
+        for (const idx of Object.keys(selected)) player.activeDices[Number(idx)] = selected[idx]
       },
     },
   },
@@ -245,19 +229,16 @@ const cards: Record<string, Card> = {
     image: 'Laborer.png',
     level: 1,
     cost: {
-      desc: {
+      description: {
         en: '',
         ja: '出目合計15以上 15+',
       },
-      valid: (player) => player.fixedDices.reduce((a, b) => a + b, 0) >= 15,
+      valid: (player, _) => player.fixedDices.reduce((a, b) => a + b, 0) >= 15,
     },
     ability: {
-      desc: {
+      description: {
         en: 'add a dice with a roll of "1"',
         ja: '出目「1」のダイスを1個追加',
-      },
-      select: {
-        valid: noSelect,
       },
       timing: Timing.ability,
       on: (player, selected): void => {
@@ -273,21 +254,18 @@ const cards: Record<string, Card> = {
     image: 'Guard.png',
     level: 1,
     cost: {
-      desc: {
+      description: {
         en: '',
         ja: '同じ出目3つ :x: = x: = :x:',
       },
-      valid: (player) => sameDiceCount(player.fixedDices, 3),
+      valid: (player, _) => sameDiceCount(player.fixedDices, 3),
     },
     ability: {
-      desc: {
+      description: {
         en: 'add a dice with a roll of "2"',
         ja: '出目「2」のダイスを1個追加',
       },
       timing: Timing.ability,
-      select: {
-        valid: noSelect,
-      },
       on: (player, selected): void => {
         player.activeDices.push(2)
       },
@@ -301,38 +279,33 @@ const cards: Record<string, Card> = {
     image: 'Maid.png',
     level: 1,
     cost: {
-      desc: {
+      description: {
         en: 'tbd',
         ja: '出目全てが奇数 ALL :1: / :3: / :5:',
       },
-      valid: (player) => {
-        return player.fixedDices.every((v) => [1, 3, 5].includes(v))
-      },
+      valid: (player, _) => player.fixedDices.every((v) => [1, 3, 5].includes(v)),
     },
     ability: {
-      desc: {
+      description: {
         en: 'add "3" dice',
         ja: 'ダイス1個の出目に1か2か3を加える',
       },
       timing: Timing.ability,
       select: {
         dice: 1,
-        change: [1, 2, 3],
+        new: true,
         valid: (player, selected) => {
-          const {dice, change} = cards.Maid.ability.select
-          if (!selected || !Array.isArray(selected.changes) ||
-            !Array.isArray(selected.diceIdxes) ||
-            selected.changes.length !== dice ||
-            selected.diceIdxes.length !== dice ||
-            !change!.includes(selected.changes[0])
-          ) throw 'invalid select'
+          isSelected(selected, player.activeDices.length, cards.Maid.ability.select!.dice)
+          for (const idx of Object.keys(selected)) {
+            const diff = selected[idx] - player.activeDices[Number(idx)]
+            if (diff > 3 || diff < 1) throw 'invalid select'
+          }
         },
       },
       on: (player, selected): void => {
-        const valid: AssertSelected = cards.Maid.ability.select.valid
+        const valid: AssertSelected = cards.Maid.ability.select!.valid
         valid(player, selected)
-        player.activeDices[selected.diceIdxes[0]] += selected.changes[0]
-        checkDices(player)
+        for (const idx of Object.keys(selected)) player.activeDices[Number(idx)] = selected[idx]
       },
     },
   },
@@ -344,33 +317,29 @@ const cards: Record<string, Card> = {
     image: 'Merchant.png',
     level: 2,
     cost: {
-      desc: {
+      description: {
         en: '',
         ja: '出目合計20以上 20+',
       },
-      valid: (player) => player.fixedDices.reduce((a, b) => a + b, 0) >= 20,
+      valid: (player, _) => player.fixedDices.reduce((a, b) => a + b, 0) >= 20,
     },
     ability: {
-      desc: {
+      description: {
         en: '',
         ja: '任意の個数のダイスを振り直す',
       },
       timing: Timing.ability,
       select: {
-        change: [0, 1],
-        valid: (player, selected) => {
-          if (!selected || !Array.isArray(selected.changes) ||
-            selected.changes.length !== player.activeDices.length
-          ) throw 'invalid select'
-        }
+        dice: Infinity,
+        new: false,
+        valid: (player, selected) => isSelected(selected, player.activeDices.length),
       },
       on: (player, selected): void => {
-        const valid: AssertSelected = cards.Merchant.ability.select.valid
+        const valid: AssertSelected = cards.Merchant.ability.select!.valid
         valid(player, selected)
-        player.activeDices = player.activeDices.map((v, i) => {
-          if (selected.changes[i] === 0) return v
-          return player._rollDice()
-        })
+        for (const idx of Object.keys(selected)) {
+          player.activeDices[Number(idx)] = player._rollDice()
+        }
       },
     },
   },
@@ -382,35 +351,30 @@ const cards: Record<string, Card> = {
     image: 'Astronomer.png',
     level: 2,
     cost: {
-      desc: {
+      description: {
         en: 'tbd',
         ja: '同じ出目2つが2組 :x: = :x: & :x: = :x:',
       },
-      valid: (player) => sameDicePair(player.fixedDices, 2),
+      valid: (player, _) => sameDicePair(player.fixedDices, 2),
     },
     ability: {
-      desc: {
+      description: {
         en: '',
         ja: 'ダイス1個の出目を確定済ダイスの出目と同じ目に変更',
       },
       timing: Timing.ability,
       select: {
         dice: 1,
-        change: oneTo6,
+        new: true,
         valid: (player, selected) => {
-          const {dice} = cards.Astronomer.ability.select
-          if (!selected || !Array.isArray(selected.changes) ||
-            !Array.isArray(selected.diceIdxes) ||
-            selected.diceIdxes.length !== dice ||
-            selected.changes.length !== dice ||
-            !player.fixedDices.includes(selected.changes[0])
-          ) throw 'invalid select'
+          isSelected(selected, player.activeDices.length, cards.Astronomer.ability.select!.dice)
+          for (const v of Object.values(selected)) if (!player.fixedDices.includes(v)) throw 'invalid select'
         }
       },
       on: (player, selected): void => {
-        const valid: AssertSelected = cards.Astronomer.ability.select.valid
+        const valid: AssertSelected = cards.Astronomer.ability.select!.valid
         valid(player, selected)
-        player.activeDices[selected.diceIdxes[0]] = selected.changes[0]
+        for (const idx of Object.keys(selected)) player.activeDices[Number(idx)] = selected[idx]
       },
     },
   },
@@ -422,21 +386,18 @@ const cards: Record<string, Card> = {
     image: 'Hunter.png',
     level: 2,
     cost: {
-      desc: {
+      description: {
         en: 'tbd',
         ja: '同じ出目4つ :x: = :x: = :x: = :x:',
       },
-      valid: (player) => sameDiceCount(player.fixedDices, 4),
+      valid: (player, _) => sameDiceCount(player.fixedDices, 4),
     },
     ability: {
-      desc: {
+      description: {
         en: 'add a dice with a roll of "3"',
         ja: '出目「3」ダイスを1個追加',
       },
       timing: Timing.ability,
-      select: {
-        valid: noSelect,
-      },
       on: (player, selected): void => {
         player.activeDices.push(3)
       },
@@ -450,21 +411,18 @@ const cards: Record<string, Card> = {
     image: 'PawnBroker.png',
     level: 3,
     cost: {
-      desc: {
+      description: {
         en: '',
         ja: '出目合計30以上 30+',
       },
-      valid: (player) => player.fixedDices.reduce((a, b) => a + b, 0) >= 30,
+      valid: (player, _) => player.fixedDices.reduce((a, b) => a + b, 0) >= 30,
     },
     ability: {
-      desc: {
+      description: {
         en: 'add a dice with a roll of "4"',
         ja: '出目「4」のダイスを1個追加',
       },
       timing: Timing.ability,
-      select: {
-        valid: noSelect,
-      },
       on: (player, selected): void => {
         player.activeDices.push(4)
       },
@@ -478,21 +436,22 @@ const cards: Record<string, Card> = {
     image: 'Noblewoman.png',
     level: 3,
     cost: {
-      desc: {
+      description: {
         en: '',
         ja: '同じ出目2つと同じ出目3つ :x: = :x: & :x: = :x: = :x:',
       },
-      valid: (player) => {
+      valid: (player, _) => {
         const counts: Record<number, number> = {}
-        let flag2 = false
-        let flag3 = false
+        let flag2 = 0
+        let flag3 = 0
         for (const v of player.fixedDices) {
           if (counts[v]) {
             counts[v] += 1
-            if (counts[v] === 3) {
-              flag3 = true
-              counts[v] = 0
-            } else if (counts[v] === 2) flag2 = true
+            if (counts[v] === 5) return true
+            else if (counts[v] === 3) {
+              flag3 = v
+              if (flag2 === v) flag2 = 0
+            } else if (counts[v] === 2) flag2 = v
             if (flag2 && flag3) return true
           } else counts[v] = 1
         }
@@ -500,25 +459,27 @@ const cards: Record<string, Card> = {
       },
     },
     ability: {
-      desc: {
+      description: {
         ja: '任意の個数のダイスの出目に+1',
         en: '',
       },
       timing: Timing.ability,
       select: {
-        change: [0, 1],
+        dice: Infinity,
+        new: false,
         valid: (player, selected) => {
-          const {change} = cards.Noblewoman.ability.select
-          if (!selected || !Array.isArray(selected.changes) ||
-            selected.changes.length !== player.activeDices.length ||
-            !selected.changes.every(v => change!.includes(v))
-          ) throw 'invalid select'
+          isSelected(selected, player.activeDices.length)
+          for (const idx of Object.keys(selected)) {
+            if (player.activeDices[Number(idx)] === 6) throw 'invalid select'
+          }
         },
       },
       on: (player, selected): void => {
-        const valid: AssertSelected = cards.Noblewoman.ability.select.valid
+        const valid: AssertSelected = cards.Noblewoman.ability.select!.valid
         valid(player, selected)
-        player.activeDices = player.activeDices.map((v, i) => v + selected.changes[i])
+        for (const idx of Object.keys(selected)) {
+          player.activeDices[Number(idx)] += 1
+        }
       },
     },
   },
@@ -530,38 +491,30 @@ const cards: Record<string, Card> = {
     image: 'Magician.png',
     level: 3,
     cost: {
-      desc: {
+      description: {
         en: '',
         ja: '連続した出目5つ (:1:) :2: :3: :4: :5: (:6:)',
       },
-      valid: (player) => {
+      valid: (player, _) => {
         const set = new Set(player.fixedDices)
         return set.size >= 5 && set.has(2) && set.has(3) && set.has(4) && set.has(5)
       }
     },
     ability: {
-      desc: {
+      description: {
         en: '',
         ja: 'ダイス1個の出目を、任意の出目に変更',
       },
       timing: Timing.ability,
       select: {
         dice: 1,
-        change: oneTo6,
-        valid: (player, selected) => {
-          const {dice, change} = cards.Magician.ability.select
-          if (!selected || !Array.isArray(selected.changes) ||
-            !Array.isArray(selected.diceIdxes) ||
-            selected.changes.length !== dice ||
-            selected.diceIdxes.length !== dice ||
-            !change!.includes(selected.changes[0])
-          ) throw 'invalid select'
-        }
+        new: true,
+        valid: (player, selected) => isSelected(selected, player.activeDices.length, cards.Magician.ability.select!.dice),
       },
       on: (player, selected): void => {
-        const valid: AssertSelected = cards.Magician.ability.select.valid
+        const valid: AssertSelected = cards.Magician.ability.select!.valid
         valid(player, selected)
-        player.activeDices[selected.diceIdxes[0]] = selected.changes[0]
+        for (const idx of Object.keys(selected)) player.activeDices[Number(idx)] = selected[idx]
       },
     },
   },
@@ -573,21 +526,18 @@ const cards: Record<string, Card> = {
     image: 'Knight.png',
     level: 3,
     cost: {
-      desc: {
+      description: {
         en: 'tbd',
         ja: '同じ出目5つ :x: = :x: = :x: = :x: = :x:',
       },
-      valid: (player) => sameDiceCount(player.fixedDices, 5),
+      valid: (player, _) => sameDiceCount(player.fixedDices, 5),
     },
     ability: {
-      desc: {
+      description: {
         en: 'add a dice with a roll of "5"',
         ja: '出目「5」ダイスを1個追加',
       },
       timing: Timing.ability,
-      select: {
-        valid: noSelect,
-      },
       on: (player, selected): void => {
         player.activeDices.push(5)
       },
@@ -601,21 +551,18 @@ const cards: Record<string, Card> = {
     image: 'Bishop.png',
     level: 4,
     cost: {
-      desc: {
+      description: {
         en: 'tbd',
         ja: '同じ出目2つが3組 :x: = :x:, :x: = :x:, :x: = :x:',
       },
-      valid: (player) => sameDicePair(player.fixedDices, 3),
+      valid: (player, _) => sameDicePair(player.fixedDices, 3),
     },
     ability: {
-      desc: {
+      description: {
         en: 'add a dice with a roll of "6"',
         ja: '出目「6」ダイスを1個追加',
       },
       timing: Timing.ability,
-      select: {
-        valid: noSelect,
-      },
       on: (player, selected): void => {
         player.activeDices.push(6)
       },
@@ -629,38 +576,34 @@ const cards: Record<string, Card> = {
     image: 'Alchemist.png',
     level: 4,
     cost: {
-      desc: {
+      description: {
         en: 'tbd',
         ja: '連続した出目6つ :1: :2: :3: :4: :5: :6:',
       },
-      valid: (player) => new Set(player.fixedDices).size === 6,
+      valid: (player, _) => new Set(player.fixedDices).size === 6,
     },
     ability: {
-      desc: {
+      description: {
         en: 'When you roll a 6, you may pay 2 to gain 1 VP.',
         ja: 'ダイス3個の間で出目を-Xし、他のダイスを+Xする。3個の出目合計は同じに',
       },
       timing: Timing.ability,
       select: {
         dice: 3,
-        change: changeDiceRange,
+        new: true,
         valid: (player, selected) => {
-          const {dice} = cards.Alchemist.ability.select
-          if (!selected || !Array.isArray(selected.changes) ||
-            !Array.isArray(selected.diceIdxes) ||
-            selected.changes.length !== dice ||
-            selected.diceIdxes.length !== dice ||
-            selected.changes.reduce((v, p) => v + p, 0) !== 0
-          ) throw 'invalid select'
+          isSelected(selected, player.activeDices.length, cards.Alchemist.ability.select!.dice)
+          let sum = 0
+          for (const idx of Object.keys(selected)) {
+            sum += selected[idx] - player.activeDices[Number(idx)]
+          }
+          if (sum !== 0) throw 'invalid select'
         },
       },
       on: (player, selected): void => {
-        const valid: AssertSelected = cards.Alchemist.ability.select.valid
+        const valid: AssertSelected = cards.Alchemist.ability.select!.valid
         valid(player, selected)
-        player.activeDices[selected.diceIdxes[0]] += selected.changes[0]
-        player.activeDices[selected.diceIdxes[1]] += selected.changes[1]
-        player.activeDices[selected.diceIdxes[2]] += selected.changes[2]
-        checkDices(player)
+        for (const idx of Object.keys(selected)) player.activeDices[Number(idx)] = selected[idx]
       },
     },
   },
@@ -672,21 +615,18 @@ const cards: Record<string, Card> = {
     image: 'General.png',
     level: 4,
     cost: {
-      desc: {
+      description: {
         en: '',
         ja: '同じ出目6つ :x: = :x: = :x: = :x: = :x: = :x:',
       },
-      valid: (player) => sameDiceCount(player.fixedDices, 6)
+      valid: (player, _) => sameDiceCount(player.fixedDices, 6)
     },
     ability: {
-      desc: {
+      description: {
         en: '',
         ja: '手番開始時にダイス2個追加',
       },
       timing: Timing.immediate,
-      select: {
-        valid: noSelect,
-      },
       on: (player, selected): void => {
         player.diceNum += 2
       }
@@ -700,11 +640,11 @@ const cards: Record<string, Card> = {
     image: 'Nobleman.png',
     level: 4,
     cost: {
-      desc: {
+      description: {
         en: '',
         ja: '同じ出目3つが2組 :x: = :x: = :x: & :x: = :x: = :x:',
       },
-      valid: (player) => {
+      valid: (player, _) => {
         const counts: Record<number, number> = {}
         let flag3 = 0
         for (const v of player.fixedDices) {
@@ -720,25 +660,25 @@ const cards: Record<string, Card> = {
       },
     },
     ability: {
-      desc: {
+      description: {
         en: '',
         ja: '任意の個数のダイスの出目に+2',
       },
       timing: Timing.ability,
       select: {
-        change: [0, 2],
+        dice: Infinity,
+        new: true,
         valid: (player, selected) => {
-          const {change} = cards.Nobleman.ability.select
-          if (!selected || !Array.isArray(selected.changes) ||
-            selected.changes.length !== player.activeDices.length ||
-            !selected.changes.every(v => change!.includes(v))
-          ) throw 'invalid select'
+          isSelected(selected, player.activeDices.length)
+          for (const idx of Object.keys(selected)) {
+            if ([5,6].includes(player.activeDices[Number(idx)])) throw 'invalid select'
+          }
         },
       },
       on: (player, selected): void => {
-        const valid: AssertSelected = cards.Nobleman.ability.select.valid
+        const valid: AssertSelected = cards.Nobleman.ability.select!.valid
         valid(player, selected)
-        player.activeDices = player.activeDices.map((v, i) => v + selected.changes[i])
+        for (const idx of Object.keys(selected)) player.activeDices[Number(idx)] += 2
       },
     },
   },
@@ -750,23 +690,20 @@ const cards: Record<string, Card> = {
     image: 'King.png',
     level: 5,
     cost: {
-      desc: {
+      description: {
         en: '',
         ja: '同じ出目7つ :x: = :x: = :x: = :x: = :x: = :x: = :x:',
       },
-      valid: (player) => sameDiceCount(player.fixedDices, 7),
+      valid: (player, _) => sameDiceCount(player.fixedDices, 7),
     },
     ability: {
-      desc: {
+      description: {
         en: '',
         ja: '王妃を獲得',
       },
       timing: Timing.immediate,
-      select: {
-        valid: noSelect,
-      },
       on: (player, _) => {
-        player.cards.push(Queen)
+        player.cards.push({card: Queen, available: true})
       },
     },
   },

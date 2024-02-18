@@ -63,6 +63,7 @@ test.each`
   ${Noblewoman}| ${[1, 1, 1, 2, 3, 3]}| ${true}
   ${Noblewoman}| ${[1, 1, 1, 1, 1]}| ${true}
   ${Noblewoman}| ${[1, 1, 1, 1, 2, 2]}| ${true}
+  ${Noblewoman}| ${[2, 2, 2, 2, 3, 4]}| ${false}
   ${Noblewoman}| ${[1, 1, 2, 2, 3]}| ${false}
   ${Noblewoman}| ${[1, 1, 2, 2, 3, 3]}| ${false}
   ${Magician}| ${[1, 2, 3, 4, 5]}| ${true}
@@ -95,11 +96,13 @@ test.each`
 })
 
 test.each([
-  [Charlatan, [Maid], false],
-  [Charlatan, [Maid, Fool], true],
-])('cost.valid()', (model, cards, expected) => {
+  [Charlatan, [], false],
+  [Charlatan, [{card: Fool, available: true}], true],
+])('Charlatan cost.valid()', (model, cards, expected) => {
   player.cards = cards
-  expect(model.cost.valid(player)).toBe(expected);
+  expect(model.cost.valid(player, true)).toBe(expected)
+  expect(model.cost.valid(player, false)).toBe(expected)
+  expect(player.cards).toEqual([]);
 })
 
 test.each([
@@ -116,10 +119,11 @@ test.each([
 })
 
 test.each([
-  [Charlatan, 1],
-  [Farmer, 2],
-  [General, 4],
+  [Charlatan, 4],
+  [Farmer, 4],
+  [General, 5],
 ])('ability.on() immediately', (model, expected) => {
+  const player = new Player('test')
   model.ability.on(player, {})
   expect(player.diceNum).toEqual(expected)
 })
@@ -127,29 +131,37 @@ test.each([
 test('King & Queen ability.on()', () => {
   player.activeDices = []
   King.ability.on(player, {})
-  const Queen = player.cards.find(v => v.name.en === 'Queen')
+  const Queen = player.cards.find(v => v.card.name.en === 'Queen')
   expect(!!Queen).toEqual(true)
-  Queen!.ability.on(player, {changes: [6]})
+  Queen!.card.ability.on(player, {'0': 6})
   expect(player.activeDices).toEqual([6])
 })
 
 test.each([
-  [Philosopher, [0, 5], [3, -3], [4, 2, 3, 4, 5, 3]],
-  [Philosopher, [1, 4], [1, -1], [1, 3, 3, 4, 4, 6]],
-  [Philosopher, [1, 4], [2, -1], null],
-  [Alchemist, [2, 3, 4], [1, 0, -1], [1, 2, 4, 4, 4, 6]],
-  [Alchemist, [0, 1, 5], [3, 2, -5], [4, 4, 3, 4, 5, 1]],
-  [Maid, [0], [1], [2, 2, 3, 4, 5, 6]],
-  [Maid, [1], [3], [1, 5, 3, 4, 5, 6]],
-  [Astronomer, [0], [3], [3, 2, 3, 4, 5, 6]],
-  [Astronomer, [1], [4], [1, 4, 3, 4, 5, 6]],
-  [Noblewoman, undefined, [1, 0, 1, 0, 1, 0], [2, 2, 4, 4, 6, 6]],
-  [Magician, [0], [6], [6, 2, 3, 4, 5, 6]],
-  [Nobleman, undefined, [2, 0, 2, 2, 0, 0], [3, 2, 5, 6, 5, 6]],
-])('model.ability.on()', (model, diceIdxes, changes, expected) => {
+  ['Philosopher', {'0':4, '5':3}, [4, 2, 3, 4, 5, 3]],
+  ['Philosopher', {'1':3, '4':4}, [1, 3, 3, 4, 4, 6]],
+  ['Philosopher', {'1':2, '4':6}, null],
+  ['Philosopher', {'0':2}, null],
+  ['Philosopher', {'0':0, '1': 3}, null],
+  ['Philosopher', {'4':4, '5': 7}, null],
+  ['Alchemist', {'2':4, '3':4, '4':4}, [1, 2, 4, 4, 4, 6]],
+  ['Alchemist', {'0':4, '1':4, '5':1}, [4, 4, 3, 4, 5, 1]],
+  ['Alchemist', {'0':4, '1':3, '5':1}, null],
+  ['Maid', {'0':2}, [2, 2, 3, 4, 5, 6]],
+  ['Maid', {'1':5}, [1, 5, 3, 4, 5, 6]],
+  ['Maid', {'0':6}, null],
+  ['Astronomer', {'0':3}, [3, 2, 3, 4, 5, 6]],
+  ['Astronomer', {'1':4}, null],
+  ['Noblewoman', {'0':2,'2':4,'4':6}, [2, 2, 4, 4, 6, 6]],
+  ['Noblewoman', {'0':1,'2':1,'5':1}, null],
+  ['Magician', {'0':6}, [6, 2, 3, 4, 5, 6]],
+  ['Magician', {'0':6, '1':6}, null],
+  ['Nobleman', {'0':3,'1':4,'2':5}, [3, 4, 5, 4, 5, 6]],
+  ['Nobleman', {'0':1,'4':1}, null],
+])('%s.ability.on()', (modelName, selected, expected) => {
+  const model = cards[modelName]
   player.activeDices = [1, 2, 3, 4, 5, 6]
-  player.fixedDices = [3, 4]
-  const selected = {diceIdxes, changes}
+  player.fixedDices = [3]
   if (expected === null) expect(() => model.ability.on(player, selected)).toThrowError(/invalid select/)
   else {
     model.ability.on(player, selected)
@@ -159,13 +171,14 @@ test.each([
 
 const reRolledNum = 2
 test.each([
-  [Fool, [0], [1], [reRolledNum, 1, 1]],
-  [Merchant, undefined, [1, 1, 0], [reRolledNum, reRolledNum, 1]],
-])('ability.on() re-roll dices', (model, diceIdxes, changes, expected) => {
+  ['Fool', {'0':1}, [reRolledNum, 1, 1]],
+  ['Merchant', {'0':1,'1':1}, [reRolledNum, reRolledNum, 1]],
+])('%s.ability.on() re-roll dices', (modelName, selected, expected) => {
+  const model = cards[modelName]
   const spy = vi.spyOn(player, '_rollDice')
   expect(spy.getMockName()).toEqual('_rollDice')
   spy.mockImplementation(() => reRolledNum)
   player.activeDices = [1, 1, 1]
-  model.ability.on(player, {diceIdxes, changes})
+  model.ability.on(player, selected)
   expect(player.activeDices).toEqual(expected)
 })
