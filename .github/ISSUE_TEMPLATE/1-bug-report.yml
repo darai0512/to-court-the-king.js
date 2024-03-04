@@ -1,0 +1,49 @@
+name: 🐛 Bug report (バグ報告)
+description: Create a report to help me improve
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue.
+        バグ報告・ご意見、ありがとうございます！
+
+        This issue tracker is for bugs and issues found within this product.
+        Please fill in as much of the following form as you're able.
+        以下の項目を埋めていただき、ご報告いただければ幸いです。
+  - type: dropdown
+    id: os
+    attributes:
+      label: OS
+      options:
+        - Windows 10
+        - Windows 11
+        - OSX
+        - iOS
+        - Android
+        - Other
+      default: 0
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Browser (UserAgent)
+      description: |
+        ex, `Chrome 122.0.6261.129`
+  - type: input
+    attributes:
+      label: Bug Time (バグの発生日)
+      description: |
+        ex, `2024-04-01 JST`
+  - type: textarea
+    attributes:
+      label: What bugs? (バグ内容)
+      description: text in detail, screenshots and so on. (画像も利用できます)
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What steps will reproduce the bug? (バグの再現手順)
+  - type: textarea
+    attributes:
+      label: Error message on screen. (画面に表示されたエラーメッセージ)

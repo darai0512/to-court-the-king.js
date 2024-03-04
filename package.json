@@ -1,18 +1,22 @@
 {
   "name": "to-court-the-king.js",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "i18n": "i18nexus pull -p app/messages",
     "lint": "next lint",
     "test": "vitest"
   },
+  "types": "src/index.d.ts",
   "dependencies": {
+    "flowbite-react": "^0.7.5",
     "next": "14.1.0",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "react-intl": "^6.6.2"
   },
   "devDependencies": {
     "@headlessui/react": "^1.7.18",
@@ -20,7 +24,8 @@
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "@tailwindcss/forms": "^0.5.7",
     "@testing-library/react": "^14.2.1",
-    "@types/node": "^20",
+    "@types/node": "^20.11.24",
+    "@types/peerjs": "^1.1.0",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@vitejs/plugin-react": "^4.2.1",
@@ -28,9 +33,11 @@
     "create-next-app": "^14.1.0",
     "eslint": "^8",
     "eslint-config-next": "14.1.0",
+    "i18nexus-cli": "^3.3.0",
     "jsdom": "^24.0.0",
     "postcss": "^8",
     "tailwindcss": "^3.3.0",
+    "terser-webpack-plugin": "^5.3.10",
     "typescript": "^5",
     "vitest": "^1.2.2"
   }

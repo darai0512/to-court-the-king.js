@@ -1,0 +1,22 @@
+name: 🚀 Feature request (ご意見・機能要望)
+description: Suggest an idea for this project
+labels: [feature request]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting an idea to make this product better.
+        ご意見ご要望、ありがとうございます！
+
+        Please fill in as much of the following form as you're able.
+        以下の項目を埋めていただき、ご報告いただければ幸いです。
+  - type: textarea
+    attributes:
+      label: What is the problem this feature will solve? (解決したい課題は？)
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What is the feature you are proposing to solve the problem? (解決方法は？)
+    validations:
+      required: true

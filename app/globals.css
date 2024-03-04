@@ -3,46 +3,191 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 0, 0, 0;
+  --background-end-rgb: 0, 0, 0;
 }
 
 body {
-  color: rgba(var(--foreground-rgb), 0.5);
+  color: rgba(var(--foreground-rgb), 1.0);
   background: linear-gradient(
     to bottom,
     transparent,
     rgb(var(--background-end-rgb))
   );
-}
-body:before {
-  content: ' ';
-  display: block;
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  opacity: 0.1;
-  background-image: url("/images/to-court-the-king-bg.jpg");
-  background-position: center;
-  background-size: cover;
-  z-index: -1;
+  &:before {
+    content: ' ';
+    display: block;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    opacity: 0.1;
+    background-image: url("/images/bg.webp");
+    background-position: center;
+    background-size: cover;
+    z-index: -1;
+  }
 }
 footer {
   text-align: center;
 }
 
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+/* Thanks to https://lenadesign.org/2020/06/18/roll-the-dice/ */
+.dice {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  transform-style: preserve-3d;
+  transition: transform 1s;
+  .side {
+    position: absolute;
+    border-radius:5px;
+    background-color: white;
+    width: 50px;
+    height: 50px;
+    border: 1px solid #e5e5e5;
+    .dot {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      margin: -5px 3px 3px -5px;
+      border-radius: 20px;
+      background-color: tomato;
+      box-shadow: inset 2px 2px #d90429;
+    }
   }
+  &.selected:not(.anime) .side {
+    background-color: tomato;
+    .dot {
+      background-color: white;
+    }
+  }
+}
+.side.one {
+  transform: translateZ(1.5em);
+}
+.side.six {
+  transform: rotateY(90deg) translateZ(1.5em);
+}
+.side.three {
+  transform: rotateY(-90deg) translateZ(1.5em);
+}
+.side.four {
+  transform: rotateX(90deg) translateZ(1.5em);
+}
+.side.five {
+  transform: rotateX(-90deg) translateZ(1.5em);
+}
+.side.two {
+  transform: rotateY(-180deg) translateZ(1.5em);
+}
+.show-1 {
+  transform: rotateX(720deg) rotateZ(-720deg);
+  &.anime {
+    /* 2 */
+    transform: rotateX(-900deg) rotateZ(1080deg);
+  }
+}
+.show-2 {
+  transform: rotateX(-900deg) rotateZ(1080deg);
+  &.anime {
+    /* 3 */
+    transform: rotateY(810deg) rotateZ(720deg);
+  }
+}
+.show-6 {
+  transform: rotateY(-450deg) rotateZ(-1440deg);
+  &.anime {
+    /* 1 */
+    transform: rotateX(720deg) rotateZ(-720deg);
+  }
+}
+.show-3 {
+  transform: rotateY(810deg) rotateZ(720deg);
+  &.anime {
+    /* 4 */
+    transform: rotateX(-810deg) rotateZ(-1080deg);
+  }
+}
+.show-4 {
+  transform: rotateX(-810deg) rotateZ(-1080deg);
+  &.anime {
+    /* 5 */
+    transform: rotateX(450deg) rotateZ(-720deg);
+  }
+}
+.show-5 {
+  transform: rotateX(450deg) rotateZ(-720deg);
+  &.anime {
+    /* 6 */
+    transform: rotateX(720deg) rotateZ(-720deg);
+  }
+}
+.two-1, .three-1, .four-1, .five-1, .six-1 {
+  top: 20%;
+  left: 20%;
+}
+.four-3, .five-3, .six-4 {
+  top: 20%;
+  left: 80%;
+}
+.one-1, .three-2, .five-5 {
+  top: 50%;
+  left: 50%;
+}
+.four-2, .five-2, .six-3 {
+  top: 80%;
+  left: 20%;
+}
+.two-2, .three-3, .four-4, .five-4, .six-6 {
+  top: 80%;
+  left: 80%;
+}
+.six-2 {
+  top: 50%;
+  left: 20%;
+}
+.six-5 {
+  top: 50%;
+  left: 80%;
+}
+
+.crown {
+  position: relative;
+  padding: 0px 0px 0px 2.5em;
+  color: #dbb400;
+}
+.crown::before,
+.crown::after {
+  position: absolute;
+  left: 0px;
+  width: 0px;
+  height: 0px;
+  content: "";
+}
+.crown::before {
+  top: -1.25em;
+  border: 1em solid transparent;
+  border-bottom: 1.5em solid currentColor;
+}
+.crown::after {
+  top: 0.25em;
+  border: 0.5em solid transparent;
+  border-left: 1em solid currentColor;
+  border-right: 1em solid currentColor;
+}
+
+.tri {
+  /* "bg-gray-700" */
+  background: linear-gradient(45deg, rgb(0 0 0 / 0) 0%, rgb(0 0 0 / 0) 50%, rgb(55 65 81 / 0.5) 50%, rgb(55 65 81 / 0.5) 100%);
+}
+
+@keyframes smooth {
+  from {opacity: .1;}
+  to {opacity: 1;}
+}
+
+@keyframes logo-up {
+  from {background-color: rgb(255 255 255 / 0);}
+  to {background-color: rgb(255 255 255 / 0.5);}
 }
