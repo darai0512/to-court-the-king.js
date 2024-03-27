@@ -22,14 +22,14 @@ export const metadata: Metadata = {
   openGraph: {
     title,
     description,
-    images: `${url}images/logo.png`,
+    images: `${url}images/bg.webp`,
     url,
     siteName: title,
     locale: 'ja_JP',
     type: 'website',
   },
   twitter: {
-    card: 'summary_large_image',
+    card: 'summary',
     title,
     description,
     site: '@darai_0512',
@@ -75,7 +75,7 @@ export default async function RootLayout({
               <a href={`/api/rule`} target="_blank">
                 Rule
               </a>
-              <a href="https://github.com/darai0512/to-court-the-king.js/issues/new" target="_blank">
+              <a href="https://github.com/darai0512/to-court-the-king.js/issues/new/choose" target="_blank">
                 Issue
               </a>
               <a href="https://status.peerjs.com/" target="_blank">
