@@ -3,7 +3,6 @@ import Field from '~/src/field'
 import {Step} from '~/src/const'
 import i18n, {defaultLng, I18nStr} from './const'
 import { headers, cookies } from 'next/headers';
-import {FieldError} from "~/src/util";
 
 const field = new Field()
 const lngs = Object.keys(i18n)
@@ -13,7 +12,7 @@ export async function next(data: any, params: any) {
     let newData = field.next(data, params)
     if (newData.step === Step.roll) newData = field.next(data, {})
     return {success: true, data: newData}
-  } catch(e: FieldError) {
+  } catch(e: any) {
     console.error(e)
     return {success: false, error: e.code}
   }
