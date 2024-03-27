@@ -10,11 +10,30 @@ import i18n from './const'
 
 const inter = Inter({ subsets: ["latin"] });
 
+const title = "To Court the King"
+const description = "Online game of 'To Court The King'"
+const url = "https://to-court-the-king-js.vercel.app/"
 export const metadata: Metadata = {
-  title: "To Court The King",
-  description: "Online game of 'To Court The King'",
+  title,
+  description,
   icons: {
     icon: '/images/favicon.ico',
+  },
+  openGraph: {
+    title,
+    description,
+    images: `${url}images/logo.png`,
+    url,
+    siteName: title,
+    locale: 'ja_JP',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title,
+    description,
+    site: '@darai_0512',
+    creator: '@darai_0512',
   },
 }
 

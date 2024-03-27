@@ -253,7 +253,7 @@ export function Lobby({setError, peer, setPeer, onSubmit}: {setError: any, peer:
         )
       } else if (isOnline) {
         let elm: any = players[i].id
-        if (elm === peer.id) elm = <div ref={node => node && node.click()}>{players[i].id}</div>
+        if (elm === peer.id) elm = <div ref={node => {node && node.click()}}>{players[i].id}</div>
         inputs.push(
           <tr key={`player-${i}`} className="h-[45px] border-b border-gray-700">
             <td className="px-3 py-3">{players[i].name}</td>
