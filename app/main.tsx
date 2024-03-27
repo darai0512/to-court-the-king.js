@@ -63,7 +63,7 @@ const Info = memo(function Info({data}: {data: FieldData}) {
     players.push(<Fragment key={p.id}>
       <Tooltip content={elm} theme={cardToolTipTheme} style="dark" trigger={show ? 'click' : 'hover'}>
         <span className={'cursor-pointer ' + (i === data.activePlayer ? activeClassName : playerClassName)}
-              ref={node=>show && node && (node as HTMLSpanElement).click()}
+              ref={node=>{show && node && (node as HTMLSpanElement).click()}}
         >{p.name}</span>
       </Tooltip>
       {data.top.playerId === p.id && <Crown dices={data.top.dices} />}
