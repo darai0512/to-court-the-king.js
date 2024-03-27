@@ -3,14 +3,14 @@ export const INITIAL_DICE_NUM = 3
 export enum Step {
   // step, display info
   initialize, // set players
-  roll, // nothing
-  ability, // 自分のカード(済み区別)、アクティブダイス、確定ダイス、場のカード、他プレイヤーのカード、順番
-  fix, // 同上
+  roll, // skip可能。Resultフェーズとして使っても良い
+  fix, // 自分のカード(済み区別)、アクティブダイス、確定ダイス、場のカード、他プレイヤーのカード、順番
   choice, // 自分のカード、確定ダイス、場のカード、他プレイヤーのカード、順番
+  end,
 }
 
 export const Timing = {
-  ability: Step.ability,
+  ability: Step.fix,
   immediate: Step.roll,
 } as const
 
@@ -21,8 +21,4 @@ export const cardCounts: Record<number, number[]> = {
   4: [4, 3, 3, 2, 2, 1],
   5: [5, 4, 3, 3, 3, 1],
 }
-
-export interface i11n {
-  en: string,
-  ja: string,
-}
+export const MAX_PLAYER = Math.max(...Object.keys(cardCounts).map(v => Number(v)))

@@ -1,6 +1,16 @@
 import { expect, test, vi } from "vitest";
-import cards from "./card";
-import Player from "./player";
+import cards, {isAvailable} from "./card";
+import Field from "./field";
+
+const field = new Field()
+const data = field.next(field.data, {players: [{
+  name: 'name',
+  id: 'id',
+}, {
+  name: 'name2',
+  id: 'id2',
+}]})
+const player = data.players[data.activePlayer]
 
 const {
   Fool,
@@ -24,9 +34,8 @@ const {
   King,
 } = cards
 
-const player = new Player('test')
 test.each`
-  model | dices | expected
+  model | fixedDices | expected
   ${Fool}| ${[]} | ${true}
   ${Farmer}| ${[1, 1, 1]}| ${true}
   ${Farmer}| ${[1, 1, 2]}| ${true}
@@ -90,14 +99,15 @@ test.each`
   ${Nobleman}| ${[1, 1, 1, 2, 2, 4]}| ${false}
   ${King}| ${[1, 1, 1, 1, 1, 1, 1]}| ${true}
   ${King}| ${[1, 1, 1, 1, 1, 1, 2]}| ${false}
-`('$model.name.en cost.valid($dices) -> $expected', ({model, dices, expected}) => {
-  player.fixedDices = dices
-  expect(model.cost.valid(player)).toBe(expected);
+`('$model.name.en cost.valid($dices) -> $expected', ({model, fixedDices, expected}) => {
+  const originalDices = [...fixedDices]
+  expect(model.cost.valid({fixedDices})).toBe(expected)
+  expect(originalDices).toEqual(fixedDices)
 })
 
 test.each([
   [Charlatan, [], false],
-  [Charlatan, [{card: Fool, available: true}], true],
+  [Charlatan, [{name: 'Fool', available: true}], true],
 ])('Charlatan cost.valid()', (model, cards, expected) => {
   player.cards = cards
   expect(model.cost.valid(player, true)).toBe(expected)
@@ -123,17 +133,17 @@ test.each([
   [Farmer, 4],
   [General, 5],
 ])('ability.on() immediately', (model, expected) => {
-  const player = new Player('test')
+  player.diceNum = 3
   model.ability.on(player, {})
   expect(player.diceNum).toEqual(expected)
 })
 
 test('King & Queen ability.on()', () => {
   player.activeDices = []
+  player.cards = []
   King.ability.on(player, {})
-  const Queen = player.cards.find(v => v.card.name.en === 'Queen')
-  expect(!!Queen).toEqual(true)
-  Queen!.card.ability.on(player, {'0': 6})
+  expect(player.cards).toEqual([{name: 'Queen', available: true}])
+  cards.Queen.ability.on(player, {'0': 6})
   expect(player.activeDices).toEqual([6])
 })
 
@@ -162,23 +172,33 @@ test.each([
   const model = cards[modelName]
   player.activeDices = [1, 2, 3, 4, 5, 6]
   player.fixedDices = [3]
-  if (expected === null) expect(() => model.ability.on(player, selected)).toThrowError(/invalid select/)
+  if (expected === null) expect(() => model.ability.on(player, selected)).toThrowError(/invalid_data/)
   else {
     model.ability.on(player, selected)
     expect(player.activeDices).toEqual(expected)
   }
 })
 
-const reRolledNum = 2
+const mathRandom = 0.5
+const reRolledNum = 4
 test.each([
   ['Fool', {'0':1}, [reRolledNum, 1, 1]],
   ['Merchant', {'0':1,'1':1}, [reRolledNum, reRolledNum, 1]],
 ])('%s.ability.on() re-roll dices', (modelName, selected, expected) => {
   const model = cards[modelName]
-  const spy = vi.spyOn(player, '_rollDice')
-  expect(spy.getMockName()).toEqual('_rollDice')
-  spy.mockImplementation(() => reRolledNum)
+  const spy = vi.spyOn(Math, 'random')
+  expect(spy.getMockName()).toEqual('random')
+  spy.mockImplementation(() => mathRandom)
   player.activeDices = [1, 1, 1]
   model.ability.on(player, selected)
   expect(player.activeDices).toEqual(expected)
 })
+
+test("card.isAvailable", () => {
+  expect(isAvailable(data, Fool)).toBe(true)
+  data.players[data.activePlayer].cards = [{name: 'Fool', available: true}]
+  expect(isAvailable(data, Fool)).toBe(false)
+  data.players[data.activePlayer].cards.push({name: 'Charlatan', available: true})
+  expect(isAvailable(data, Charlatan)).toBe(true)
+});
+
