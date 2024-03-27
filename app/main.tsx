@@ -148,18 +148,17 @@ export default function Main() {
 
   const {formatMessage} = useIntl()
   const onSubmit = async (params?: any, origin: null|string = null, send = true) => {
-    console.log('submit',params)
-    try {
-      let newData = params
-      if (origin === null) newData = {...await next(dataRef.current, params)}
-      setData(newData)
-      if (send && peerId) {
-        if (!peer.disconnected) peer.disconnect()
-        origin = origin === null ? peerId : origin
-        multiSend(peer, {action: 'data', data: newData, origin}, origin)
-      }
-    } catch(e: any) {
-      setError(formatMessage({id: e.message})) // todo Result型handling
+    let newData = params
+    if (origin === null) {
+      const res = await next(dataRef.current, params)
+      if (res.success) newData = {...res.data}
+      else return setError(formatMessage({id: res.error}))
+    }
+    setData(newData)
+    if (send && peerId) {
+      if (!peer.disconnected) peer.disconnect()
+      origin = origin === null ? peerId : origin
+      multiSend(peer, {action: 'data', data: newData, origin}, origin)
     }
   }
   const activePlayer = data.players[data.activePlayer]
