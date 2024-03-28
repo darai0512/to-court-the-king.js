@@ -8,6 +8,14 @@
   --background-end-rgb: 0, 0, 0;
 }
 
+@font-face {
+  font-family: "hibiwaremoji";
+  src: url("/images/hibiwaremoji.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 body {
   color: rgba(var(--foreground-rgb), 1.0);
   background: linear-gradient(

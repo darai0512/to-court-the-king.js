@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import Link from 'next/link'
 import Image from "next/image"
 import "./globals.css";
@@ -6,7 +5,14 @@ import {LanguageIcon} from "@heroicons/react/16/solid";
 import { Dropdown, DropdownItem, Tooltip, CustomFlowbiteTheme } from 'flowbite-react'
 import {getLocale} from './server'
 import i18n, {title} from './const'
+import { Inter } from 'next/font/google'
+import ReactDOM from "react-dom";
+import type { Metadata } from "next";
 
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+})
 const description = "Online game of 'To Court The King'"
 const url = "https://to-court-the-king-js.vercel.app/"
 export const metadata: Metadata = {
@@ -49,10 +55,14 @@ export default async function RootLayout({
   children: React.ReactNode;
   params: Object,
 }>) {
+  ReactDOM.preload('/images/hibiwaremoji.ttf', {
+    as: 'font',
+    crossOrigin: "anonymous",
+  })
   const lang = await getLocale(null) // not include searchParams
   return (
     <html lang={lang}>
-      <body className={'min-h-screen min-w-[400px]'}>
+      <body className={inter.className + ' min-h-screen min-w-[400px]'}>
         <header className="text-white/50 text-sm font-semibold leading-6 [text-shadow:_1px_1px_0_black]">
           <nav className="mx-auto flex max-w-7xl items-center justify-between p-6 lg:px-8" aria-label="Global">
             <div className="flex lg:flex-1">
