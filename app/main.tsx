@@ -9,17 +9,16 @@ import {Fix, Choice, Card} from "./elements"
 import {Lobby, multiSend} from "./lobby"
 import Modal from "./modal"
 import {ArrowRightIcon} from "@heroicons/react/16/solid"
-import {CustomFlowbiteTheme, Tooltip} from 'flowbite-react';
+import {Tooltip} from 'flowbite-react';
 import {next} from './server'
+import {toolTipTheme} from './const'
 import {useIntl} from "react-intl";
 import type {FieldData} from '~/src/index'
 import type {Peer} from "peerjs"
 
 
 const initData = (new Field()).data
-const infoClassName = "flex flex-wrap font-mono text-sm text-[color:black] bg-transparent sm:p-4 p-2 border-neutral-800 rounded-xl border"
-const playerClassName =  "underline decoration-indigo-600"
-const activeClassName = "text-[color:tomato] font-bold"
+const infoClassName = "flex flex-wrap font-mono text-sm text-[color:black] bg-transparent sm:p-3 p-2 border-neutral-800 rounded-xl border"
 
 const Crown = memo(function Crown({dices}: {dices: number[]}) {
   return (
@@ -28,15 +27,6 @@ const Crown = memo(function Crown({dices}: {dices: number[]}) {
     </Tooltip>
   )
 })
-
-const cardToolTipTheme: CustomFlowbiteTheme['tooltip'] = {
-  arrow: {
-    base: "absolute z-10 h-2 w-2 rotate-[135deg] tri",
-  },
-  style: {
-    dark: "bg-gray-700/50",
-  }
-}
 
 const Info = memo(function Info({data}: {data: FieldData}) {
   const players = []
@@ -61,8 +51,8 @@ const Info = memo(function Info({data}: {data: FieldData}) {
     }
     const show = data._lastPlayerId === p.id && data.players[data.activePlayer].fixedDices.length === 0
     players.push(<Fragment key={p.id}>
-      <Tooltip content={elm} theme={cardToolTipTheme} style="dark" trigger={show ? 'click' : 'hover'}>
-        <span className={'cursor-pointer ' + (i === data.activePlayer ? activeClassName : playerClassName)}
+      <Tooltip content={elm} theme={toolTipTheme} trigger={show ? 'click' : 'hover'}>
+        <span className={'cursor-pointer ' + (i === data.activePlayer ? "text-[color:tomato] font-bold" : "underline decoration-indigo-600")}
               ref={node=>{show && node && (node as HTMLSpanElement).click()}}
         >{p.name}</span>
       </Tooltip>

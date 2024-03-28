@@ -6,11 +6,10 @@ import "./globals.css";
 import {LanguageIcon} from "@heroicons/react/16/solid";
 import { Dropdown, DropdownItem, Tooltip, CustomFlowbiteTheme } from 'flowbite-react'
 import {getLocale} from './server'
-import i18n from './const'
+import i18n, {title} from './const'
 
 const inter = Inter({ subsets: ["latin"] });
 
-const title = "To Court the King"
 const description = "Online game of 'To Court The King'"
 const url = "https://to-court-the-king-js.vercel.app/"
 export const metadata: Metadata = {
@@ -100,16 +99,14 @@ export default async function RootLayout({
             </div>
           </nav>
         </header>
-        <main className="flex flex-col items-center pr-4 pl-4 sm:pr-12 sm:pl-12">
+        <main className="flex flex-col items-center px-4 sm:px-10">
           {children}
         </main>
-        <footer className="sticky top-[100vh] left-0 z-20 w-full md:flex md:items-center md:justify-between">
-          <div className="w-full max-w-screen-xl mx-auto p-1 md:py-2">
-            <hr className="my-1 border-gray-200 sm:mx-auto dark:border-gray-700 lg:my-2" />
-            <span className="text-sm text-gray-500 sm:text-center dark:text-gray-400">
-              © 2024 by <a href="https://github.com/darai0512" className="hover:underline" target='_blank'>daraiii</a>
-            </span>
-          </div>
+        <footer className="sticky top-[100vh] w-full text-center p-1 md:py-2">
+          <hr className="my-1 border-gray-200 lg:my-2" />
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            © 2024 by <a href="https://github.com/darai0512" className="hover:underline" target='_blank'>daraiii</a>
+          </span>
         </footer>
         <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js" async></script>
       </body>

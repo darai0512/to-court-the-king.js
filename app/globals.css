@@ -8,6 +8,11 @@
   --background-end-rgb: 0, 0, 0;
 }
 
+@font-face {
+  font-family: "hibiwaremoji";
+  src: url("/images/hibiwaremoji.ttf") format("truetype");
+}
+
 body {
   color: rgba(var(--foreground-rgb), 1.0);
   background: linear-gradient(
@@ -25,11 +30,12 @@ body {
     background-image: url("/images/bg.webp");
     background-position: center;
     background-size: cover;
-    z-index: -1;
+    z-index: -20;
   }
-}
-footer {
-  text-align: center;
+  .tri {
+    /* tooltip arrow. color:"bg-gray-700" */
+    background: linear-gradient(45deg, rgb(0 0 0 / 0) 0%, rgb(0 0 0 / 0) 50%, rgb(55 65 81 / 0.5) 50%, rgb(55 65 81 / 0.5) 100%);
+  }
 }
 
 /* Thanks to https://lenadesign.org/2020/06/18/roll-the-dice/ */
@@ -175,11 +181,6 @@ footer {
   border: 0.5em solid transparent;
   border-left: 1em solid currentColor;
   border-right: 1em solid currentColor;
-}
-
-.tri {
-  /* "bg-gray-700" */
-  background: linear-gradient(45deg, rgb(0 0 0 / 0) 0%, rgb(0 0 0 / 0) 50%, rgb(55 65 81 / 0.5) 50%, rgb(55 65 81 / 0.5) 100%);
 }
 
 @keyframes smooth {

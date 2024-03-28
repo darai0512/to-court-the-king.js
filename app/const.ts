@@ -2,10 +2,22 @@ import cards from '~/src/card'
 import ja from './messages/ja/default.json'
 import en from './messages/en/default.json'
 import type {I18n} from '~/src/index'
+import type {CustomFlowbiteTheme} from "flowbite-react";
 
 export const buttonClassName = "flex items-center justify-center rounded-md border border-transparent" +
   " bg-indigo-600 px-8 py-3 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none" +
   " focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-gray-500"
+
+export const toolTipTheme: CustomFlowbiteTheme['tooltip'] = {
+  arrow: {
+    base: "absolute z-10 h-2 w-2 rotate-[135deg] tri",
+  },
+  style: {
+    dark: "bg-gray-700/50",
+    light: "bg-gray-700/50",
+    auto: "bg-gray-700/50",
+  }
+}
 
 const peerJsErrors: Record<string, I18n> = {
   'browser-incompatible': {
@@ -58,10 +70,18 @@ const peerJsErrors: Record<string, I18n> = {
   },
 }
 
+export const title = 'To Court the King'
 export const defaultLng: I18nStr = 'en'
 export type I18nStr = keyof I18n
 const i18n: Record<I18nStr, Record<string, string>> = {
   en: {
+    title,
+    "rule": `As a royal petitioner attending court, the players must parlay their powers(=dices) of persuasion to gain the support of court officials and sway the King to their cause.{br}{br}
+Each starts with three dice.{br}
+Each turn, a player rolls the dice, fixes at least one die, and re-rolls the rest until he has fixed all dices.{br}
+Then, A player may obtain an character card, giving him another die or a special power.{br}{br}
+After someone gets the King’s support, final round will begin.{br}
+The winner is the player with the most same number of pips!`,
     "duplex_player_id": "There are players with the same ID",
     "not_available_card": "This card cannot be used.",
     "require_at_least_1_dice": "Requires at least one die fix",
@@ -88,6 +108,10 @@ const i18n: Record<I18nStr, Record<string, string>> = {
     ...Object.keys(peerJsErrors).reduce((a, v) => ({...a, [v]: peerJsErrors[v].en}), {}),
   },
   ja: {
+    "title": "王への請願",
+    "rule": `あなたは王への請願者となり、請願を成功させるために自身の説得力（ダイス目）を活かし有力な廷臣の支持を取り付けましょう。{br}{br}
+初めは3つしかないダイスをいかに増やすか、いかに出目を操作するか、限られた廷臣の中からまず誰の支持を得るのか。{br}{br}
+誰かが国王の支持を得たら最終ラウンドへ。{br}ゾロ目を多く揃えたプレイヤーが勝者です！`,
     "duplex_player_id": "同じIDのプレイヤーがいます",
     "not_available_card": "使用不可のカードです",
     "require_at_least_1_dice": "最低一つのダイスfixが必要",

@@ -10,11 +10,7 @@ Ref.
   - [ja](http://emaame.com/static/bsw/pdfs/UmkroneundKragen.pdf)
   - [en](https://github.com/matthewdeeco/to-court-the-king/blob/master/To%20Court%20the%20King%20Rules.pdf)
 
-### 目的 & 流れ
-
-王カードの獲得を目指しましょう。
-しかしそれは勝利条件ではありません。
-誰かが王カードを獲得すると次ラウンドが最終ラウンドとなり、同じ出目をたくさん揃えたプレイヤーが勝利します。
+### 流れ
 
 1. プレイ人数(2-5)と順番を決める
 2. アクティブプレイヤーがN個のダイスを振る

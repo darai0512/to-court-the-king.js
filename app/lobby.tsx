@@ -4,7 +4,7 @@ import {MAX_PLAYER} from "~/src/const"
 import type {Peer, DataConnection, PeerError} from "peerjs"
 import {QuestionMarkCircleIcon, Bars3Icon, UsersIcon} from "@heroicons/react/16/solid";
 import { Tooltip } from 'flowbite-react';
-import {buttonClassName} from "./const"
+import {buttonClassName, toolTipTheme} from "./const"
 import {useIntl} from "react-intl";
 import type {PlayerInit} from '~/src/index'
 
@@ -14,7 +14,6 @@ export interface RTCData {
 }
 const PEER_ID_LENGTH = 36
 export const PEER_ID_PATTERN = `^[0-9a-zA-Z_\\- ]{${PEER_ID_LENGTH}}$`
-
 
 export function playerSort(a: PlayerInit, b: PlayerInit) {
   if (a.name.length === 0 && b.name.length > 0) return 1
@@ -57,7 +56,6 @@ export function multiSend(peer: Peer, data: RTCData, skipId: string) {
       }
       conn.close()
     }
-    // todo if (!sent) {}
   }
 }
 
@@ -65,7 +63,7 @@ export function multiSend(peer: Peer, data: RTCData, skipId: string) {
 export function Lobby({setError, peer, setPeer, onSubmit}: {setError: any, peer: any, setPeer: any, onSubmit: any}) {
   const [players, _setPlayers] = useState(initPlayers)
   const [online, _setOnline] = useState<{name: string, host: boolean}|null>(null)
-  const {formatMessage} = useIntl()
+  const {formatMessage, locale} = useIntl()
 
   const playersRef = useRef(players)
   const onlineRef = useRef(online)
@@ -307,12 +305,18 @@ export function Lobby({setError, peer, setPeer, onSubmit}: {setError: any, peer:
   } else if ((!isOnline || isHost) && playerNum > 1) onClick = () => onSubmit({players})
   return (
     <>
+      <Tooltip content={formatMessage({id: 'rule'}, {br: <br/>})} theme={toolTipTheme} placement="bottom">
+        <h1 className={'relative -z-10 text-[32px]/[32px] sm:text-[46px]/[46px] ' +
+          (locale === 'ja' ? "font-['hibiwaremoji']" : "font-['Zapfino']")}>
+          {formatMessage({id: 'title'})}
+        </h1>
+      </Tooltip>
       <button
         onClick={onClick===null ? ()=>{} : onClick}
         className={"my-2 " + buttonClassName}
         disabled={onClick===null}
       >
-        {isOnline && !fixed ? 'Set' : 'Start'}
+        {isOnline && !fixed ? 'Set' : 'Play'}
       </button>
       <div className="flex mb-4">
         <label className="inline-flex items-center cursor-pointer">
