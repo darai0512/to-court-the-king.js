@@ -23,7 +23,7 @@ export function playerSort(a: PlayerInit, b: PlayerInit) {
 
 const initPlayers = Array.from({length: MAX_PLAYER}, (_, i) => {
   if (i === 0) return {name: 'you', id: `${i}`}
-  else if (i === 1) return {name: 'opponent', id: `${i}`}
+  else if (i === 1) return {name: '2P non NPC', id: `${i}`}
   else return {name: '', id: `${i}`}
 })
 const inputClassName = "block flex-1 border-0 border-white bg-transparent py-1.5 pl-1 " +
@@ -305,12 +305,16 @@ export function Lobby({setError, peer, setPeer, onSubmit}: {setError: any, peer:
   } else if ((!isOnline || isHost) && playerNum > 1) onClick = () => onSubmit({players})
   return (
     <>
-      <Tooltip content={formatMessage({id: 'rule'}, {br: <br/>})} theme={toolTipTheme} placement="bottom">
-        <h1 className={'relative -z-10 text-[32px]/[32px] sm:text-[46px]/[46px] ' +
-          (locale === 'ja' ? "font-['hibiwaremoji']" : "font-['Zapfino']")}>
-          {formatMessage({id: 'title'})}
-        </h1>
-      </Tooltip>
+      <div className="cursor-pointer">
+        <Tooltip content={formatMessage({id: 'rule'}, {br: <br/>})}
+                 theme={toolTipTheme}
+                 placement="bottom" trigger="click">
+          <h1 className={'relative -z-10 text-[32px]/[32px] sm:text-[46px]/[46px] ' +
+            (locale === 'ja' ? "font-['hibiwaremoji']" : "font-['Zapfino']")}>
+            {formatMessage({id: 'title'})}
+          </h1>
+        </Tooltip>
+      </div>
       <button
         onClick={onClick===null ? ()=>{} : onClick}
         className={"my-2 " + buttonClassName}

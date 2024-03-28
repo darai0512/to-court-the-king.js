@@ -77,11 +77,9 @@ export default async function RootLayout({
               <a href="https://github.com/darai0512/to-court-the-king.js/issues/new/choose" target="_blank">
                 Issue
               </a>
-              <a href="https://status.peerjs.com/" target="_blank">
-                <Tooltip content={i18n[lang].status} placement="bottom">
-                  Status
-                </Tooltip>
-              </a>
+              <Tooltip content={i18n[lang].status} placement="bottom">
+                <a href="https://status.peerjs.com/" target="_blank">Status</a>
+              </Tooltip>
               <a href="https://www.amazon.co.jp/dp/B00VYK67JS/ref=nosim?tag=papuwa-22" target='_blank'>
                 Buy
               </a>
