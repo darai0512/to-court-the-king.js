@@ -46,7 +46,12 @@ const dropdownTheme: CustomFlowbiteTheme['dropdown'] = {
       dark: "border border-gray-200 bg-white/50 text-gray-900 dark:border-none dark:bg-gray-700 dark:text-white",
       light: "border border-gray-200 bg-white/50 text-gray-900 dark:border-none dark:bg-gray-700 dark:text-white",
     },
-  }
+    item: {
+      container: "text-gray-400 [text-shadow:initial]",
+    }
+  },
+  inlineWrapper: "flex items-center [text-shadow:inherit]",
+  arrowIcon: "ml-1 h-4 w-4 text-gray-400",
 }
 export default async function RootLayout({
   children,
@@ -78,18 +83,22 @@ export default async function RootLayout({
               <Link href="#cards" className="flex items-center gap-x-1">
                 Cards
               </Link>
-              <a href={`/api/rule`} target="_blank">
-                Rule
-              </a>
-              <a href="https://github.com/darai0512/to-court-the-king.js/issues/new/choose" target="_blank">
-                Issue
-              </a>
               <Tooltip content={i18n[lang].status} placement="bottom">
                 <a href="https://status.peerjs.com/" target="_blank">Status</a>
               </Tooltip>
+              <a href={`/api/rule`} target="_blank">
+                Rule
+              </a>
               <a href="https://www.amazon.co.jp/dp/B00VYK67JS/ref=nosim?tag=papuwa-22" target='_blank'>
                 Buy
               </a>
+              <Dropdown dismissOnClick={false}
+                        label="Games"
+                        theme={dropdownTheme}
+                        inline>
+                <DropdownItem as="a" href="https://air-poker.vercel.app" target="_blank">Air Poker</DropdownItem>
+                <DropdownItem as={Link} href="/">{i18n[lang].title}</DropdownItem>
+              </Dropdown>
             </div>
             <div className="lg:flex lg:flex-1 lg:justify-end">
               <div className="text-gray-400 [text-shadow:initial]">
@@ -110,7 +119,8 @@ export default async function RootLayout({
         <footer className="sticky top-[100vh] w-full text-center p-1 md:py-2">
           <hr className="my-1 border-gray-200 lg:my-2" />
           <span className="text-sm text-gray-500 dark:text-gray-400">
-            © 2024 by <a href="https://github.com/darai0512" className="hover:underline" target='_blank'>daraiii</a>
+            © 2024 by daraiii (
+            <a href="https://forms.gle/iC5eQJkyoHMKATpx5" className="underline decoration-dashed" target='_blank'>contact</a>)
           </span>
         </footer>
         <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js" async></script>

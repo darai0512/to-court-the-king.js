@@ -22,7 +22,7 @@ export default function Error({
       </button>
       <h1>{i18n[lang]['error.title']}</h1>
       <div>{i18n[lang]['error.report']}</div>
-      <a href="https://github.com/darai0512/to-court-the-king.js/issues/new?template=1-bug-report.yml"
+      <a href="https://forms.gle/iC5eQJkyoHMKATpx5"
          target="_blank"
       >
         <button className={"my-2 " + buttonClassName}>
